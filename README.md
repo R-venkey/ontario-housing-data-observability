@@ -118,7 +118,11 @@ streamlit run dashboard/app.py
 ```
 
 The dashboard opens at `http://localhost:8501` and will generate the local
-pipeline outputs automatically if they do not already exist.
+pipeline outputs automatically if they do not already exist. Its download
+center provides filtered transactions, monthly KPIs, anomalies, and quality
+checks as CSV files. A bright marketplace-style property gallery presents
+detached, semi-detached, townhouse, and condo examples alongside filtered
+pricing and sales statistics.
 
 Create flat CSV datasets for Power BI:
 

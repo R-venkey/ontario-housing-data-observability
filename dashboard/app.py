@@ -16,14 +16,23 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from dashboard.data_service import load_dashboard_data as load_local_data
+from dashboard.power_bi_exports import build_export_tables, dataframe_to_csv_bytes
+
+ASSET_DIR = PROJECT_ROOT / "dashboard" / "assets"
+PROPERTY_IMAGES = {
+    "Detached": ASSET_DIR / "detached-house.png",
+    "Semi-Detached": ASSET_DIR / "semi-detached-house.png",
+    "Townhouse": ASSET_DIR / "townhouse.png",
+    "Condo": ASSET_DIR / "condo.png",
+}
 
 CITY_COLORS = {
-    "Toronto": "#64d8ff",
-    "Mississauga": "#a78bfa",
-    "Brampton": "#f59e0b",
-    "Ottawa": "#34d399",
-    "Hamilton": "#fb7185",
-    "Oshawa": "#60a5fa",
+    "Toronto": "#0d9488",
+    "Mississauga": "#7c3aed",
+    "Brampton": "#ea580c",
+    "Ottawa": "#16a34a",
+    "Hamilton": "#e11d48",
+    "Oshawa": "#2563eb",
 }
 
 
@@ -50,8 +59,8 @@ def style_chart(fig: go.Figure, height: int = 360) -> go.Figure:
         margin=dict(l=12, r=12, t=48, b=12),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#dce7f3", family="Inter, sans-serif"),
-        title_font=dict(size=17, color="#f5f8fc"),
+        font=dict(color="#52606d", family="DM Sans, sans-serif"),
+        title_font=dict(size=17, color="#14213d"),
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -60,10 +69,10 @@ def style_chart(fig: go.Figure, height: int = 360) -> go.Figure:
             x=1,
             bgcolor="rgba(0,0,0,0)",
         ),
-        hoverlabel=dict(bgcolor="#111c2d", font_color="#f8fafc"),
+        hoverlabel=dict(bgcolor="#ffffff", font_color="#14213d"),
     )
-    fig.update_xaxes(gridcolor="rgba(148,163,184,0.10)", linecolor="#29364a")
-    fig.update_yaxes(gridcolor="rgba(148,163,184,0.10)", linecolor="#29364a")
+    fig.update_xaxes(gridcolor="rgba(100,116,139,0.10)", linecolor="#dbe4ea")
+    fig.update_yaxes(gridcolor="rgba(100,116,139,0.10)", linecolor="#dbe4ea")
     return fig
 
 
@@ -80,18 +89,19 @@ st.markdown(
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
     :root {
-        --ink: #f5f8fc;
-        --muted: #91a4bb;
-        --panel: rgba(17, 28, 45, 0.82);
-        --line: rgba(148, 163, 184, 0.16);
-        --cyan: #64d8ff;
+        --ink: #14213d;
+        --muted: #64748b;
+        --panel: rgba(255, 255, 255, 0.94);
+        --line: rgba(15, 118, 110, 0.13);
+        --accent: #0f766e;
+        --accent-soft: #e7f7f4;
     }
 
     .stApp {
         background:
-            radial-gradient(circle at 82% 2%, rgba(29, 107, 145, 0.23), transparent 30%),
-            radial-gradient(circle at 15% 28%, rgba(77, 63, 140, 0.15), transparent 26%),
-            #07111f;
+            radial-gradient(circle at 88% 0%, rgba(253, 186, 116, 0.22), transparent 27%),
+            radial-gradient(circle at 8% 22%, rgba(45, 212, 191, 0.13), transparent 26%),
+            #f7faf9;
         color: var(--ink);
         font-family: "DM Sans", sans-serif;
     }
@@ -102,7 +112,7 @@ st.markdown(
     }
 
     [data-testid="stSidebar"] {
-        background: rgba(8, 18, 32, 0.96);
+        background: rgba(255, 255, 255, 0.97);
         border-right: 1px solid var(--line);
     }
 
@@ -118,15 +128,16 @@ st.markdown(
 
     .hero {
         border: 1px solid var(--line);
-        background: linear-gradient(125deg, rgba(18, 41, 63, 0.94), rgba(10, 22, 38, 0.82));
+        background:
+            linear-gradient(120deg, rgba(255,255,255,0.98), rgba(234, 250, 246, 0.95));
         padding: 30px 34px;
         border-radius: 22px;
         margin-bottom: 22px;
-        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+        box-shadow: 0 22px 55px rgba(15, 118, 110, 0.09);
     }
 
     .eyebrow {
-        color: var(--cyan);
+        color: var(--accent);
         text-transform: uppercase;
         letter-spacing: 0.14em;
         font-size: 0.76rem;
@@ -141,7 +152,7 @@ st.markdown(
     }
 
     .hero p {
-        color: #a9bacd;
+        color: #5f6f7f;
         max-width: 760px;
         margin: 12px 0 0;
         font-size: 1.02rem;
@@ -153,6 +164,7 @@ st.markdown(
         border-radius: 16px;
         padding: 18px 20px;
         min-height: 128px;
+        box-shadow: 0 12px 32px rgba(31, 41, 55, 0.05);
     }
 
     [data-testid="stMetricLabel"] {
@@ -169,6 +181,7 @@ st.markdown(
         border-radius: 18px;
         padding: 8px;
         overflow: hidden;
+        box-shadow: 0 12px 32px rgba(31, 41, 55, 0.045);
     }
 
     .section-title {
@@ -190,7 +203,7 @@ st.markdown(
         font-family: "Space Grotesk", sans-serif;
         font-size: 3rem;
         font-weight: 700;
-        color: #34d399;
+        color: #0f766e;
         line-height: 1;
     }
 
@@ -201,9 +214,9 @@ st.markdown(
 
     .status-pill {
         display: inline-block;
-        background: rgba(52, 211, 153, 0.12);
-        color: #6ee7b7;
-        border: 1px solid rgba(52, 211, 153, 0.28);
+        background: #e7f7f4;
+        color: #0f766e;
+        border: 1px solid rgba(15, 118, 110, 0.20);
         border-radius: 999px;
         padding: 5px 10px;
         font-size: 0.78rem;
@@ -214,6 +227,34 @@ st.markdown(
     .small-note {
         color: var(--muted);
         font-size: 0.84rem;
+    }
+
+    [data-testid="stDownloadButton"] button {
+        width: 100%;
+        min-height: 52px;
+        border-radius: 12px;
+        border: 1px solid rgba(15, 118, 110, 0.25);
+        background: #edf9f6;
+        color: #0f766e;
+        font-weight: 700;
+    }
+
+    [data-testid="stDownloadButton"] button:hover {
+        border-color: #0f766e;
+        background: #dff5ef;
+    }
+
+    [data-testid="stImage"] img {
+        border-radius: 16px;
+        aspect-ratio: 3 / 2;
+        object-fit: cover;
+    }
+
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background: rgba(255, 255, 255, 0.96);
+        border-color: var(--line);
+        border-radius: 18px;
+        box-shadow: 0 14px 35px rgba(31, 41, 55, 0.06);
     }
     </style>
     """,
@@ -271,10 +312,10 @@ filtered_anomalies = anomalies[
 st.markdown(
     """
     <div class="hero">
-        <div class="eyebrow">Ontario market pulse</div>
-        <h1>Housing intelligence,<br/>with the data health attached.</h1>
-        <p>Track market direction across six Ontario cities while monitoring
-        the quality signals that make every metric trustworthy.</p>
+        <div class="eyebrow">Ontario housing market</div>
+        <h1>Find the market story<br/>behind every kind of home.</h1>
+        <p>Compare prices, activity, and property types across six Ontario
+        cities with trusted data behind every view.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -314,6 +355,31 @@ metric_columns[3].metric(
     f"{quality['quality_score']:.0f}%",
     "All controls passing" if all(quality["checks"].values()) else "Review required",
 )
+
+st.markdown('<div class="section-title">Explore by home type</div>', unsafe_allow_html=True)
+property_summary = (
+    filtered_silver.groupby("property_type", as_index=True)
+    .agg(average_price=("sale_price", "mean"), sales=("record_id", "nunique"))
+)
+property_columns = st.columns(4)
+for column, property_type in zip(property_columns, PROPERTY_IMAGES):
+    with column:
+        with st.container(border=True):
+            st.image(
+                str(PROPERTY_IMAGES[property_type]),
+                caption=property_type,
+                width="stretch",
+            )
+            if property_type in property_summary.index:
+                property_row = property_summary.loc[property_type]
+                st.markdown(f"### {property_type}")
+                st.markdown(
+                    f"**{currency(property_row['average_price'])}** average sale price"
+                )
+                st.caption(f"{int(property_row['sales']):,} sales in the selected period")
+            else:
+                st.markdown(f"### {property_type}")
+                st.caption("No sales in the selected period")
 
 st.markdown('<div class="section-title">Market movement</div>', unsafe_allow_html=True)
 left_chart, right_chart = st.columns([1.65, 1])
@@ -424,4 +490,45 @@ table_data = table_data.rename(
 st.dataframe(table_data, width="stretch", hide_index=True, height=360)
 st.caption(
     "Synthetic data for platform demonstration. Anomalies indicate changes for investigation, not errors."
+)
+
+st.markdown('<div class="section-title">Download center</div>', unsafe_allow_html=True)
+st.caption(
+    "CSV downloads use the active city and reporting-period filters. "
+    "The quality file describes the complete silver dataset."
+)
+download_tables = build_export_tables(
+    filtered_silver,
+    filtered_gold,
+    quality,
+    filtered_anomalies,
+)
+download_columns = st.columns(4)
+download_columns[0].download_button(
+    "Download transactions",
+    dataframe_to_csv_bytes(download_tables["transactions"]),
+    file_name="filtered_housing_transactions.csv",
+    mime="text/csv",
+    help=f"{len(download_tables['transactions']):,} filtered transaction rows.",
+)
+download_columns[1].download_button(
+    "Download monthly KPIs",
+    dataframe_to_csv_bytes(download_tables["monthly_kpis"]),
+    file_name="filtered_monthly_city_kpis.csv",
+    mime="text/csv",
+    help=f"{len(download_tables['monthly_kpis']):,} filtered city-month rows.",
+)
+download_columns[2].download_button(
+    "Download anomalies",
+    dataframe_to_csv_bytes(download_tables["anomalies"]),
+    file_name="filtered_market_anomalies.csv",
+    mime="text/csv",
+    help=f"{len(download_tables['anomalies']):,} filtered anomaly rows.",
+)
+download_columns[3].download_button(
+    "Download quality checks",
+    dataframe_to_csv_bytes(download_tables["quality_checks"]),
+    file_name="quality_checks.csv",
+    mime="text/csv",
+    help="Pipeline-level quality controls and issue counts.",
 )

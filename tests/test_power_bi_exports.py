@@ -3,7 +3,9 @@ from pathlib import Path
 import pandas as pd
 
 from dashboard.power_bi_exports import (
+    build_export_tables,
     build_quality_checks_table,
+    dataframe_to_csv_bytes,
     export_power_bi_files,
 )
 
@@ -33,6 +35,42 @@ def test_quality_report_is_flattened_to_one_row_per_check() -> None:
     assert len(quality_table) == 4
     assert quality_table["passed"].all()
     assert set(quality_table["observed_issue_count"]) == {0}
+
+
+def test_export_tables_and_csv_download_use_stable_contracts() -> None:
+    silver = pd.DataFrame(
+        {
+            "record_id": ["ON-1"],
+            "city": ["Toronto"],
+            "sale_date": [pd.Timestamp("2025-01-15")],
+        }
+    )
+    gold = pd.DataFrame(
+        {
+            "city": ["Toronto"],
+            "month": [pd.Timestamp("2025-01-01")],
+        }
+    )
+    anomalies = pd.DataFrame(
+        {
+            "city": ["Toronto"],
+            "month": [pd.Timestamp("2025-01-01")],
+        }
+    )
+
+    tables = build_export_tables(
+        silver,
+        gold,
+        sample_quality_report(),
+        anomalies,
+    )
+
+    assert tables["transactions"].loc[0, "sale_date"] == "2025-01-15"
+    assert tables["monthly_kpis"].loc[0, "month"] == "2025-01-01"
+    assert tables["anomalies"].loc[0, "month"] == "2025-01-01"
+    assert dataframe_to_csv_bytes(tables["transactions"]).startswith(
+        b"record_id,city,sale_date"
+    )
 
 
 def test_power_bi_exports_have_stable_files_and_iso_dates(tmp_path: Path) -> None:
