@@ -1,9 +1,19 @@
 # Ontario Housing Data Quality & Observability Platform
 
 [![CI](https://github.com/R-venkey/ontario-housing-data-observability/actions/workflows/ci.yml/badge.svg)](https://github.com/R-venkey/ontario-housing-data-observability/actions/workflows/ci.yml)
+[![Live App](https://img.shields.io/badge/Live_App-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://ontario-housing-data-observability.streamlit.app/)
 
-A local-first reference implementation for ingesting, transforming, monitoring,
+A deployed reference implementation for ingesting, transforming, monitoring,
 and analyzing Ontario housing market data.
+
+## Live Demo
+
+Explore the deployed dashboard:
+
+**[Ontario Housing Data Observatory](https://ontario-housing-data-observability.streamlit.app/)**
+
+The application is hosted on Streamlit Community Cloud and is connected to the
+public `main` branch of this repository.
 
 ## Business Problem
 
@@ -50,6 +60,8 @@ flowchart LR
 - pandas for transformation and aggregation
 - NumPy for reproducible sample generation
 - PyArrow for Parquet storage
+- scikit-learn for house-price estimation
+- Streamlit and Plotly for the interactive dashboard
 - pytest for automated quality-check tests
 - Git/GitHub for source control
 
@@ -68,6 +80,8 @@ dbt, Great Expectations, and a dashboard can be added in later phases.
 |-- observability/
 |   |-- quality_checks.py
 |   `-- anomaly_detection.py
+|-- modeling/
+|   `-- price_model.py
 |-- dashboard/
 |   |-- app.py
 |   |-- data_service.py
@@ -122,7 +136,13 @@ pipeline outputs automatically if they do not already exist. Its download
 center provides filtered transactions, monthly KPIs, anomalies, and quality
 checks as CSV files. A bright marketplace-style property gallery presents
 detached, semi-detached, townhouse, and condo examples alongside filtered
-pricing and sales statistics.
+pricing and sales statistics. A home-value estimator uses city, property type,
+bedrooms, expected market time, and valuation date to produce an educational
+price estimate and validation-informed range.
+
+The address field is session context only. The current synthetic data does not
+contain street addresses, postal codes, or coordinates, so the model does not
+claim exact-address or neighborhood-level precision.
 
 Create flat CSV datasets for Power BI:
 

@@ -26,6 +26,8 @@ flowchart LR
     G --> L
     I --> L
     J --> L
+    D --> M["Price model training"]
+    M --> K
 ```
 
 ## Components
@@ -83,6 +85,18 @@ typed loading interface for presentation tools.
 `dashboard/power_bi_exports.py` flattens the silver, gold, quality, and anomaly
 outputs into stable CSV files under `data/exports/`. These files can be loaded
 directly with Power BI's Folder or Text/CSV connectors.
+
+### Predictive Model
+
+`modeling/price_model.py` trains a random-forest regression pipeline using city,
+property type, bedrooms, days on market, sale year, and sale month. Categorical
+features are one-hot encoded inside the model pipeline. A held-out test split
+produces mean absolute error and R-squared metrics, while the 80th percentile of
+absolute test errors defines the displayed estimate range.
+
+The dashboard accepts a street address for display context only. The address is
+not geocoded, stored, or used as a feature because the synthetic source data has
+no street, postal-code, latitude, or longitude fields.
 
 ## Execution Flow
 

@@ -26,7 +26,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Compile Python sources
-        run: python -m compileall dashboard ingestion observability transformations tests
+        run: python -m compileall dashboard ingestion modeling observability transformations tests
 
       - name: Run tests
         run: python -m pytest -q

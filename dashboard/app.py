@@ -17,6 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from dashboard.data_service import load_dashboard_data as load_local_data
 from dashboard.power_bi_exports import build_export_tables, dataframe_to_csv_bytes
+from modeling.price_model import estimate_price, train_price_model
 
 ASSET_DIR = PROJECT_ROOT / "dashboard" / "assets"
 PROPERTY_IMAGES = {
@@ -39,6 +40,11 @@ CITY_COLORS = {
 @st.cache_data
 def load_dashboard_data() -> tuple[pd.DataFrame, pd.DataFrame, dict, pd.DataFrame]:
     return load_local_data()
+
+
+@st.cache_resource
+def load_price_model(data: pd.DataFrame):
+    return train_price_model(data)
 
 
 def currency(value: float) -> str:
@@ -262,6 +268,7 @@ st.markdown(
 )
 
 silver, gold, quality, anomalies = load_dashboard_data()
+price_model = load_price_model(silver)
 
 with st.sidebar:
     st.markdown("## Ontario Observatory")
@@ -380,6 +387,90 @@ for column, property_type in zip(property_columns, PROPERTY_IMAGES):
             else:
                 st.markdown(f"### {property_type}")
                 st.caption("No sales in the selected period")
+
+st.markdown('<div class="section-title">Home value estimator</div>', unsafe_allow_html=True)
+estimator_intro, estimator_form = st.columns([0.72, 1.28])
+with estimator_intro:
+    st.markdown("### Estimate a market price")
+    st.write(
+        "Enter a location and property profile to receive a model-based estimate "
+        "trained on the synthetic Ontario transaction history."
+    )
+    st.metric("Validation MAE", currency(price_model.mean_absolute_error))
+    st.caption(
+        f"Held-out R²: {price_model.r2_score:.3f} · "
+        f"{price_model.training_rows:,} training records"
+    )
+    st.info(
+        "The street address is shown only as context in your session. This model "
+        "does not geocode it or estimate block-level location effects."
+    )
+
+with estimator_form:
+    with st.form("home_value_estimator"):
+        address = st.text_input(
+            "Street address",
+            placeholder="Example: 123 Main Street",
+        )
+        location_col, type_col = st.columns(2)
+        estimate_city = location_col.selectbox("City", all_cities)
+        estimate_type = type_col.selectbox(
+            "Property type",
+            list(PROPERTY_IMAGES),
+        )
+        bedroom_col, market_col, date_col = st.columns(3)
+        estimate_bedrooms = bedroom_col.number_input(
+            "Bedrooms",
+            min_value=1,
+            max_value=8,
+            value=3,
+            step=1,
+        )
+        estimate_days = market_col.number_input(
+            "Expected days on market",
+            min_value=1,
+            max_value=180,
+            value=24,
+            step=1,
+        )
+        estimate_date = date_col.date_input(
+            "Valuation date",
+            value=max_month,
+        )
+        submitted = st.form_submit_button(
+            "Estimate home value",
+            type="primary",
+            width="stretch",
+        )
+
+    if submitted:
+        estimate = estimate_price(
+            price_model,
+            city=estimate_city,
+            property_type=estimate_type,
+            bedrooms=int(estimate_bedrooms),
+            days_on_market=int(estimate_days),
+            valuation_date=pd.Timestamp(estimate_date),
+        )
+        estimate_label = address.strip() or f"{estimate_type} in {estimate_city}"
+        st.success(f"Estimated market value for {estimate_label}")
+        result_columns = st.columns(3)
+        result_columns[0].metric(
+            "Estimated price",
+            currency(estimate.predicted_price),
+        )
+        result_columns[1].metric(
+            "Lower range",
+            currency(estimate.lower_bound),
+        )
+        result_columns[2].metric(
+            "Upper range",
+            currency(estimate.upper_bound),
+        )
+        st.caption(
+            "The range uses the 80th percentile of held-out model errors. "
+            "This is an educational estimate based on synthetic data, not an appraisal."
+        )
 
 st.markdown('<div class="section-title">Market movement</div>', unsafe_allow_html=True)
 left_chart, right_chart = st.columns([1.65, 1])
