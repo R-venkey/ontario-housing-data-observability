@@ -144,6 +144,13 @@ The address field is session context only. The current synthetic data does not
 contain street addresses, postal codes, or coordinates, so the model does not
 claim exact-address or neighborhood-level precision.
 
+The estimator also includes an editable Canadian mortgage scenario with
+interest rate, down payment, amortization, and payment frequency. It applies
+minimum down-payment tiers, estimates standard CMHC premiums below 20% down,
+and uses Canadian semi-annual compounding. Mortgage results are educational and
+exclude property taxes, legal fees, land-transfer tax, utilities, and lender
+qualification.
+
 Create flat CSV datasets for Power BI:
 
 ```powershell

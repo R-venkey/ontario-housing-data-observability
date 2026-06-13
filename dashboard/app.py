@@ -17,6 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from dashboard.data_service import load_dashboard_data as load_local_data
 from dashboard.power_bi_exports import build_export_tables, dataframe_to_csv_bytes
+from modeling.mortgage import calculate_mortgage
 from modeling.price_model import estimate_price, train_price_model
 
 ASSET_DIR = PROJECT_ROOT / "dashboard" / "assets"
@@ -437,6 +438,35 @@ with estimator_form:
             "Valuation date",
             value=max_month,
         )
+        st.markdown("#### Mortgage assumptions")
+        rate_col, down_col = st.columns(2)
+        mortgage_rate = rate_col.number_input(
+            "Interest rate (%)",
+            min_value=0.0,
+            max_value=20.0,
+            value=6.09,
+            step=0.05,
+            help="Editable annual rate. Default is the Bank of Canada posted "
+            "5-year conventional rate for June 10, 2026.",
+        )
+        down_payment_percent = down_col.number_input(
+            "Down payment (%)",
+            min_value=5.0,
+            max_value=100.0,
+            value=20.0,
+            step=1.0,
+        )
+        amortization_col, frequency_col = st.columns(2)
+        amortization_years = amortization_col.selectbox(
+            "Amortization",
+            [15, 20, 25, 30],
+            index=2,
+            format_func=lambda years: f"{years} years",
+        )
+        payment_frequency = frequency_col.selectbox(
+            "Payment frequency",
+            ["Monthly", "Bi-weekly", "Weekly"],
+        )
         submitted = st.form_submit_button(
             "Estimate home value",
             type="primary",
@@ -471,6 +501,48 @@ with estimator_form:
             "The range uses the 80th percentile of held-out model errors. "
             "This is an educational estimate based on synthetic data, not an appraisal."
         )
+        try:
+            mortgage = calculate_mortgage(
+                purchase_price=estimate.predicted_price,
+                down_payment_percent=float(down_payment_percent),
+                annual_rate_percent=float(mortgage_rate),
+                amortization_years=int(amortization_years),
+                payment_frequency=payment_frequency,
+            )
+        except ValueError as error:
+            st.error(str(error))
+        else:
+            st.markdown("#### Estimated mortgage")
+            mortgage_columns = st.columns(4)
+            mortgage_columns[0].metric(
+                f"{payment_frequency} payment",
+                f"${mortgage.payment_amount:,.0f}",
+            )
+            mortgage_columns[1].metric(
+                "Down payment",
+                currency(mortgage.down_payment),
+            )
+            mortgage_columns[2].metric(
+                "Mortgage amount",
+                currency(mortgage.total_mortgage),
+            )
+            mortgage_columns[3].metric(
+                "Total interest",
+                currency(mortgage.total_interest),
+            )
+            if mortgage.insurance_premium:
+                st.warning(
+                    f"Estimated mortgage insurance: "
+                    f"${mortgage.insurance_premium:,.0f}, added to the mortgage. "
+                    f"Estimated Ontario tax on the premium: "
+                    f"${mortgage.insurance_tax:,.0f}, payable in cash."
+                )
+            else:
+                st.caption("No mortgage-default insurance estimated at 20% down or more.")
+            st.caption(
+                "Payment estimate uses Canadian semi-annual compounding. It excludes "
+                "property tax, utilities, legal fees, land-transfer tax, and lender fees."
+            )
 
 st.markdown('<div class="section-title">Market movement</div>', unsafe_allow_html=True)
 left_chart, right_chart = st.columns([1.65, 1])

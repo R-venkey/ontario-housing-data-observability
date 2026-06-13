@@ -98,6 +98,12 @@ The dashboard accepts a street address for display context only. The address is
 not geocoded, stored, or used as a feature because the synthetic source data has
 no street, postal-code, latitude, or longitude fields.
 
+`modeling/mortgage.py` converts the model estimate into an editable Canadian
+mortgage scenario. It validates federal minimum down-payment tiers, estimates
+standard CMHC premiums by loan-to-value, applies Ontario sales tax to the
+insurance premium, and converts nominal semi-annual interest into monthly,
+bi-weekly, or weekly payment rates.
+
 ## Execution Flow
 
 ```text
