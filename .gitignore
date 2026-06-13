@@ -9,7 +9,11 @@ data/silver/*.parquet
 data/gold/*.parquet
 data/gold/*.json
 data/gold/*.csv
+data/exports/*.csv
 
 !data/bronze/.gitkeep
 !data/silver/.gitkeep
 !data/gold/.gitkeep
+!data/exports/.gitkeep
+
+/ontario-housing-data-observability/

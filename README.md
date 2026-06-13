@@ -1,5 +1,7 @@
 # Ontario Housing Data Quality & Observability Platform
 
+[![CI](https://github.com/R-venkey/ontario-housing-data-observability/actions/workflows/ci.yml/badge.svg)](https://github.com/R-venkey/ontario-housing-data-observability/actions/workflows/ci.yml)
+
 A local-first reference implementation for ingesting, transforming, monitoring,
 and analyzing Ontario housing market data.
 
@@ -66,12 +68,22 @@ dbt, Great Expectations, and a dashboard can be added in later phases.
 |-- observability/
 |   |-- quality_checks.py
 |   `-- anomaly_detection.py
+|-- dashboard/
+|   |-- app.py
+|   |-- data_service.py
+|   `-- power_bi_exports.py
+|-- docs/
+|   |-- architecture.md
+|   `-- data_dictionary.md
 |-- tests/
+|   |-- test_power_bi_exports.py
 |   `-- test_quality_checks.py
 |-- data/
 |   |-- bronze/
+|   |-- exports/
 |   |-- silver/
 |   `-- gold/
+|-- .github/workflows/ci.yml
 `-- requirements.txt
 ```
 
@@ -98,6 +110,44 @@ pytest
 
 Each script supports `--help` and optional input/output paths. The generator is
 deterministic by default, so repeated runs produce the same sample data.
+
+Launch the interactive dashboard:
+
+```powershell
+streamlit run dashboard/app.py
+```
+
+The dashboard opens at `http://localhost:8501` and will generate the local
+pipeline outputs automatically if they do not already exist.
+
+Create flat CSV datasets for Power BI:
+
+```powershell
+python dashboard/power_bi_exports.py
+```
+
+The exports are written to `data/exports/` and include transactions, monthly
+KPIs, quality checks, and anomaly records. Generated data files are excluded
+from Git.
+
+## Screenshots
+
+Portfolio screenshots can be added at these stable paths:
+
+- `docs/images/dashboard-overview.png`
+- `docs/images/dashboard-quality-anomalies.png`
+- `docs/images/power-bi-model.png`
+
+<!--
+![Dashboard overview](docs/images/dashboard-overview.png)
+![Quality and anomalies](docs/images/dashboard-quality-anomalies.png)
+![Power BI model](docs/images/power-bi-model.png)
+-->
+
+## Documentation
+
+- [Architecture and data flow](docs/architecture.md)
+- [Data dictionary](docs/data_dictionary.md)
 
 ## Gold KPIs
 
