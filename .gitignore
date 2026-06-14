@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .coverage
+.azure/
+azure_functions/local.settings.json
+infra/*.parameters.json
+!infra/main.parameters.example.json
 
 data/bronze/*.csv
 data/silver/*.parquet

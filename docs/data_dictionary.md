@@ -1,5 +1,48 @@
 # Data Dictionary
 
+## Cloud Operational Tables
+
+### `source_systems`
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `source_id` | bigint | Surrogate source identifier |
+| `source_name` | text | Stable unique source name |
+| `base_url` | text | Official API endpoint |
+| `expected_frequency` | text | Expected publication cadence |
+| `freshness_threshold_hours` | integer | Maximum acceptable run age |
+| `created_at` | timestamptz | Source registration timestamp |
+
+### `pipeline_runs`
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `run_id` | uuid | Unique pipeline execution identifier |
+| `source_id` | bigint | Source-system foreign key |
+| `started_at` | timestamptz | UTC run start |
+| `completed_at` | timestamptz | UTC completion time |
+| `status` | text | `running`, `success`, `warning`, or `failed` |
+| `records_read` | integer | Parsed source rows |
+| `records_written` | integer | Inserted or updated rows |
+| `records_rejected` | integer | Rejected rows |
+| `source_watermark` | timestamptz | Newest source observation |
+| `raw_object_path` | text | Bronze Blob object path |
+| `code_version` | text | Deployed Git commit SHA |
+| `error_message` | text | Truncated failure detail |
+
+### `mortgage_rates`
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `series_id` | text | Bank of Canada Valet series identifier |
+| `observation_date` | date | Published observation date |
+| `label` | text | Human-readable rate label |
+| `description` | text | Source series description |
+| `rate_percent` | numeric | Annual rate percentage |
+| `source_id` | bigint | Source-system foreign key |
+| `run_id` | uuid | Pipeline run that last upserted the row |
+| `ingested_at` | timestamptz | Most recent ingestion timestamp |
+
 ## Bronze: Raw Housing Transactions
 
 File: `data/bronze/ontario_housing_raw.csv`

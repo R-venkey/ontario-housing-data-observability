@@ -1,0 +1,16 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AZURE_STORAGE_CONNECTION_STRING": "<storage-connection-string>",
+    "BRONZE_CONTAINER": "bronze",
+    "PGHOST": "<server>.postgres.database.azure.com",
+    "PGPORT": "5432",
+    "PGDATABASE": "housing",
+    "PGUSER": "housingadmin",
+    "PGPASSWORD": "<password>",
+    "PGSSLMODE": "require",
+    "GIT_COMMIT_SHA": "local"
+  }
+}

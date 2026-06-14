@@ -29,11 +29,16 @@ This project demonstrates a medallion data pipeline that:
 - Publishes monthly city-level KPIs.
 - Measures data quality and identifies material market anomalies.
 - Produces reproducible outputs that can later be orchestrated and visualized.
+- Includes a deployment-ready Azure ingestion path for official mortgage rates.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
+    A0["Bank of Canada Valet API"] --> A1["Azure Function"]
+    A1 --> A2["Azure Blob Bronze"]
+    A1 --> A3["Azure PostgreSQL"]
+    A1 --> A4["Application Insights"]
     A["Sample Data Generator"] --> B["Bronze: Raw CSV"]
     B --> C["Bronze-to-Silver Cleaning"]
     C --> D["Silver: Typed Parquet"]
@@ -43,6 +48,7 @@ flowchart LR
     G --> H["Anomaly Detection"]
     F --> I["Quality Report JSON"]
     H --> J["Anomaly Report CSV"]
+    A3 -. "live rate integration" .-> K["Streamlit Dashboard"]
 ```
 
 ### Data Layers
@@ -64,9 +70,8 @@ flowchart LR
 - Streamlit and Plotly for the interactive dashboard
 - pytest for automated quality-check tests
 - Git/GitHub for source control
-
-The scaffold is intentionally orchestration-neutral. Airflow, cloud storage,
-dbt, Great Expectations, and a dashboard can be added in later phases.
+- Azure Functions, Blob Storage, PostgreSQL, Application Insights, and Bicep
+  for the first production ingestion slice
 
 ## Project Structure
 
@@ -74,6 +79,13 @@ dbt, Great Expectations, and a dashboard can be added in later phases.
 .
 |-- ingestion/
 |   `-- sample_data_generator.py
+|-- azure_functions/
+|   |-- function_app.py
+|   `-- shared/
+|-- database/
+|   `-- schema.sql
+|-- infra/
+|   `-- main.bicep
 |-- transformations/
 |   |-- bronze_to_silver.py
 |   `-- silver_to_gold.py
@@ -88,6 +100,7 @@ dbt, Great Expectations, and a dashboard can be added in later phases.
 |   `-- power_bi_exports.py
 |-- docs/
 |   |-- architecture.md
+|   |-- azure_deployment.md
 |   `-- data_dictionary.md
 |-- tests/
 |   |-- test_power_bi_exports.py
@@ -178,6 +191,7 @@ Portfolio screenshots can be added at these stable paths:
 ## Documentation
 
 - [Architecture and data flow](docs/architecture.md)
+- [Azure deployment guide](docs/azure_deployment.md)
 - [Data dictionary](docs/data_dictionary.md)
 
 ## Gold KPIs
@@ -207,10 +221,10 @@ pass. The anomaly detector flags absolute month-over-month changes greater than
 
 1. **Foundation:** Local generation, medallion transformations, tests, and
    observability reports.
-2. **Orchestration:** Schedule pipeline tasks with Airflow and add retries,
-   lineage, and service-level objectives.
-3. **Cloud Platform:** Move storage and compute to a cloud data lake or
-   warehouse and add CI/CD.
+2. **Live Ingestion:** Archive Bank of Canada rates in Azure Blob Storage,
+   normalize them in PostgreSQL, and monitor runs with Application Insights.
+3. **Cloud Platform:** Add municipal permits, Statistics Canada, and CMHC
+   sources, then serve curated data to the dashboard.
 4. **Analytics:** Build dashboards for market KPIs, quality trends, and anomaly
    investigation.
 5. **Production Observability:** Add alert routing, historical score tracking,

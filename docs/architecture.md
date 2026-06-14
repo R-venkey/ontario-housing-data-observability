@@ -2,13 +2,20 @@
 
 ## Overview
 
-The Ontario Housing Data Quality & Observability Platform is a local-first
-analytics pipeline organized around the medallion architecture. Synthetic
-transaction data moves through raw, cleaned, and aggregated layers before it is
-served to the Streamlit dashboard or exported for Power BI.
+The Ontario Housing Data Quality & Observability Platform combines a local
+medallion pipeline with a deployment-ready Azure ingestion path. Synthetic
+transactions support reproducible analytics and modeling, while official Bank
+of Canada mortgage rates establish the first live-data source.
 
 ```mermaid
 flowchart LR
+    BOC["Bank of Canada Valet API"] --> AF["Azure Function timer"]
+    AF --> AB["Azure Blob Bronze JSON"]
+    AF --> PG["Azure PostgreSQL"]
+    AF --> AI["Application Insights"]
+    PG --> HE["Function health endpoint"]
+    HE --> MON["Azure Monitor availability alert"]
+    PG -. "next dashboard integration" .-> K
     A["Synthetic Ontario housing generator"] --> B["Bronze CSV"]
     B --> C["Schema and type cleaning"]
     C --> D["Silver Parquet"]
@@ -29,6 +36,22 @@ flowchart LR
     D --> M["Price model training"]
     M --> K
 ```
+
+## Cloud Data Flow
+
+The Azure Function runs daily at 08:15 UTC. It downloads the official mortgage
+rate response, writes an immutable date-partitioned copy to Blob Storage, and
+upserts normalized observations into PostgreSQL. Every attempt creates a
+`pipeline_runs` record with timestamps, row counts, source watermark, raw
+object path, code version, and any error message.
+
+The anonymous `/api/health` endpoint reports the latest status and freshness of
+each source. Application Insights captures invocations and exceptions; Azure
+Monitor can poll the endpoint and alert when it returns `503`.
+
+Infrastructure is defined in `infra/main.bicep`. The initial footprint uses a
+Functions Consumption plan, Standard LRS Blob Storage, Log Analytics,
+Application Insights, and PostgreSQL Flexible Server B1ms with 32 GB storage.
 
 ## Components
 
@@ -132,7 +155,8 @@ workflow also compiles Python sources before testing to catch syntax errors.
 
 ## Production Evolution
 
-The current boundaries support replacing local files with object storage,
-moving transformations into distributed compute or dbt, scheduling tasks with
-Airflow, persisting quality history, and routing incidents to an alerting
-platform without changing the reporting contracts.
+The next source adapters will target municipal permits, Statistics Canada, and
+CMHC housing supply data. PostgreSQL read models can then replace selected
+synthetic dashboard inputs while retaining local files as a demo fallback.
+Later hardening includes Key Vault references, managed identity, restricted
+networking, schema-specific database roles, and persisted quality trends.
